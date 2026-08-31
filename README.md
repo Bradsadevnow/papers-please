@@ -7,6 +7,19 @@ generating more doctrine. Reading is gameplay. Challenging is governance.
 
 Full design and current status: [`HANDOFF.md`](HANDOFF.md). Read that first.
 
+## Portfolio pivot, 2026-08-30
+
+This is no longer a single-company build. Four companies are in scope —
+**GriefForge**, **SubLaborix Universal**, **OxyVitae Global**, and
+**Somnify Neural** — all sharing the same engine, each with its own frozen
+document archive, seams, and doctrine graph. `companies/` holds the raw
+source material (35 pitch transcripts + flagship founding-doc packages)
+this whole thing is drawn from. [`CANON_SPEC.md`](CANON_SPEC.md) is the
+reusable eight-object canon shape every company gets defined through
+before any document generation happens — GriefForge's is proven (reverse-
+engineered from its real, already-built 8-document archive); the other
+three are drafts, not yet built.
+
 ## One repo, on purpose
 
 As of 2026-08-30 this is the single canonical home for the whole build. It
