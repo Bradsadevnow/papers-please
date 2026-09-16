@@ -21,6 +21,7 @@ from seams import HUNTABLE, IN_HAND, Seam, SeamState
 
 class Outcome(str, Enum):
     LANDED = "landed"        # enough in hand; Gloss cannot paper over it
+    WON = "won"              # a landed confrontation reduced integrity to zero
     PAPERED = "papered"      # too early; seams normalised, hand wiped
     NOTHING = "nothing"      # confronted with an empty hand
 
@@ -89,8 +90,15 @@ class Round:
         if len(hand) >= self.threshold:
             for s in hand:
                 s.state = SeamState.SPENT
-            self.integrity = max(0, self.integrity - 18 * (len(hand) // self.threshold))
+            # Crossing the threshold is the first real breach. Every additional
+            # piece of evidence compounds it, rather than waiting for another
+            # whole threshold-sized batch (3 → 18, 4 → 36, 5 → 54 by default).
+            loss = 18 * (len(hand) - self.threshold + 1)
+            self.integrity = max(0, self.integrity - loss)
             self.log.append(f"confrontation landed with {len(hand)} seams")
+            if self.integrity == 0:
+                self.log.append("continuity integrity collapsed -- inspector won")
+                return Outcome.WON, hand
             return Outcome.LANDED, hand
 
         for s in hand:

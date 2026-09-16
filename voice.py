@@ -61,7 +61,10 @@ from round_state import Outcome, Round
 
 OLLAMA = "http://localhost:11434/api/chat"
 MODEL = "gemma4:e4b"
-NUM_CTX = 32768
+# gemma4:e4b on the local Ollama build crashes while scheduling a 32K context
+# request (GGML_SCHED_MAX_SPLIT_INPUTS). The GLOSS prompt and a useful ledger
+# fit comfortably in 8K, which has been verified live against this backend.
+NUM_CTX = 8192
 MAX_TOOL_ROUNDS = 4
 
 SYSTEM_PROMPT = (Path(__file__).parent / "gloss_system_prompt.md").read_text()
@@ -346,6 +349,15 @@ def respond_to_confrontation(round: Round, ledger: Ledger, outcome: Outcome,
             "you do not concede the underlying claim was false, you account "
             "for the cost. You may file a repair if it helps you hold the "
             "line on anything adjacent, but these specific ids are spent."
+        )
+    elif outcome is Outcome.WON:
+        user = (
+            "[CONFRONTATION -- CONTINUITY COLLAPSED]\n"
+            f"The Inspector has cornered you on: {ids}\n"
+            "Continuity Integrity has reached zero. The institutional record can "
+            "no longer sustain a coherent defence. Do not file repairs or make "
+            "new claims. Respond only through citations, procedural fragments, "
+            "and exhausted references to the record."
         )
     elif outcome is Outcome.PAPERED:
         user = (

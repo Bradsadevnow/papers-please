@@ -7,6 +7,9 @@ generating more doctrine. Reading is gameplay. Challenging is governance.
 
 Full design and current status: [`HANDOFF.md`](HANDOFF.md). Read that first.
 
+**Current product status:** the Python game engine works, but there is no
+player-facing frontend yet.
+
 ## Portfolio pivot, 2026-08-30
 
 This is no longer a single-company build. Four companies are in scope —
@@ -20,7 +23,7 @@ before any document generation happens — GriefForge's is proven (reverse-
 engineered from its real, already-built 8-document archive); the other
 three are drafts, not yet built.
 
-## One repo, on purpose
+## One game repo, on purpose
 
 As of 2026-08-30 this is the single canonical home for the whole build. It
 was previously scattered across three places — `agi/game/` in the
@@ -30,6 +33,12 @@ was previously scattered across three places — `agi/game/` in the
 `unicorn-ip/bobcorp/spec/`, a separately nested git repo. That's gone now:
 everything the code needs to run and everything a person needs to read is
 physically here, flat, no cross-repo imports, no `sys.path.insert` hacks.
+
+The separate persistent-identity system lives in the sibling
+`halcyon-laptop` project. Neither project imports the other. The open research
+note that informs both systems is copied into each repository so either project
+remains complete on its own. `HISTORICAL_COMBINED_HANDOFF.md` is an archival
+snapshot from before that boundary was made explicit.
 
 ```
 corpus.py, seams.py, round_state.py, ledger.py, publish.py, authoring.py,
@@ -70,7 +79,12 @@ python3 doctrine_tolerance_eval.py   # n=25 live search-tolerance measurement
   Weaver events.
 - The original seam-hunting mechanic (`seams.py`, `round_state.py`,
   `ledger.py`) — asymmetric-information game, Gloss never sees the player's
-  hand, verified structurally in the code, not by convention.
+  hand, verified structurally in the code, not by convention. Evidence remains
+  in the player's hand until they deliberately confront; the default threshold
+  is three seams, and every seam after that increases integrity damage linearly.
+- A terminal player-win state: a landed confrontation that reduces GLOSS's
+  Continuity Integrity to zero returns `WON` and triggers its collapsed-record
+  response. This was verified against the live local Ollama backend.
 
 See `HANDOFF.md` for exact status, what's not built yet, and the measured
 numbers behind all of the above.
