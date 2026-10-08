@@ -84,18 +84,35 @@ The engine does two-pass document publication with locatable seam declarations
 — the UI needs to show the *live* archive growing, not just a frozen corpus:
 
 - [x] P2-01 Wire the frontend to read newly-published documents as GLOSS writes
-      them — done via `/api/publish`, not yet wired to the *seeded* `corpus.json`
-      archive specifically (the live session only ever had GLOSS-published docs,
-      never loaded the pre-existing corpus — open question below)
+      them — done via `/api/publish`
 - [x] P2-02 Surface GLOSS's live responses (via local LM Studio, `gpt-oss-20b`) in
       the reader/probe flow — done, this is the probe panel
+- [x] P2-03 Ground live generation in GriefForge's actual canon (2026-10-08).
+      `/api/publish` was writing generic "AI lab claims AGI" capability reports
+      — zero connection to GriefForge, the company whose canon `CANON_SPEC.md`
+      calls "proven." Decided against loading `corpus/griefforge/`'s 8 static
+      files directly (Brad: "why would I ever go for [a read-only load] when
+      it gets me nowhere closer to a finished project" — they have no seam
+      manifests, so nothing in them would be playable). Rewrote `publish.py`'s
+      `SYSTEM` prompt to GriefForge's actual document genre (committee minutes,
+      financial reconciliation, clinical review, legal memo — not capability
+      reports) and register (formal corporate jargon, not "10th grader avoiding
+      buzzwords"). Verified live: a generated Q4 Clinical Safety Review named
+      GriefForge/Closure-as-a-Service correctly, landed on real archive jargon
+      ("Gross Churn Adjusted Revenue") unprompted, and planted 5 real seams
+      with the corroboration pipeline firing normally.
 
-**New open item from this pass:** `corpus.json`'s pre-generated documents
-(the seed/baseline corpus `seed.py` produces) were never loaded into a
-`Round` by `api_server.py` — the archive starts empty and only grows via
-live `/api/publish` calls. Decide whether the seeded corpus should load at
-startup too, or whether "the archive only ever grows from here" is the
-intended player experience.
+**Bug found and fixed in the same pass, independent of the above:**
+`gloss_system_prompt.md` (what every live probe/confrontation actually loads)
+still opened "you are the institutional metabolism layer of **BobCorp**" —
+leftover from the pre-GriefForge satire, meaning every real conversation with
+GLOSS was naming the wrong company the whole time this was playable. Also
+resolved a three-way identity conflict: GriefForge's own canon (`CANON.md`)
+calls the in-world AI **JARDOS**, not GLOSS. Brad's call: keep **GLOSS**
+everywhere in the live engine (it's wired into the actual code, docstrings,
+HANDOFF, README; JARDOS only ever existed in prose lore) — not changing the
+static `corpus/griefforge/` archive files to match, since they're reference
+material the engine doesn't read, not something players see.
 
 ## P3 — Mechanic tightening
 
