@@ -40,6 +40,8 @@ game.
 
 ```text
 *.py                         game engine and local-model integration
+api_server.py                 HTTP API wrapping the engine for the frontend
+frontend/                    React + Vite player UI (talks to api_server.py)
 corpus.json, drafts/         current generated archive
 companies/                   company research and source material
 corpus/                      company-specific founding corpora
@@ -57,10 +59,21 @@ both projects is copied into both rather than imported across the boundary.
 
 ## Product interface
 
-There is currently no frontend. The Python entry points are development
-probes, not the intended player interface. The next product milestone is a
-real game UI for reading documents, highlighting evidence, probing GLOSS, and
-performing confrontations.
+A real frontend exists now (2026-10-07): `frontend/` is a React + Vite app,
+talking to `api_server.py` (stdlib Python, wraps the real engine over HTTP —
+no mocked data). Verified live: reading a document, highlighting a span to
+claim a seam (real `round.accuse_span()` call), probing GLOSS (real
+`voice.respond_to_probe()`, including a real tool call landing in the
+ledger), and publishing a new document (real `publish.publish()` call,
+GLOSS actually wrote one and it planted 5 real seams). Confrontation is
+wired but not yet exercised against a real win/loss — hand was empty in the
+session that built this.
+
+Run it: `python3 api_server.py` (port 8010), then `cd frontend && npm run
+dev` (Vite proxies `/api` to 8010, no CORS setup needed). Still open per the
+roadmap: document highlighting doesn't render markdown, there's no visual
+distinction for a found-but-not-yet-confronted seam beyond the hand list,
+and the confrontation outcome screen has never been seen with a real hand.
 
 ## Runtime target
 

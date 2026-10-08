@@ -50,27 +50,52 @@ yet" — worth closing before a UI locks in on top of unverified ground:
 
 ## P1 — The frontend (the actual UI)
 
-Per `HANDOFF.md`'s "Next build" §1, the real next milestone:
+Per `HANDOFF.md`'s "Next build" §1 — scaffolded and verified live 2026-10-07
+(React + Vite, `api_server.py` wrapping the real engine, no mocked data):
 
-- [ ] P1-01 Document reader: render a published document, support highlighting
-      a span as a seam claim
-- [ ] P1-02 Visible hand count — the player's claimed-but-unconfirmed evidence,
-      structurally private from GLOSS per the existing engine guarantee
-- [ ] P1-03 Probe action — ask GLOSS a non-accusing question, wired to the
-      existing probe ledger
-- [ ] P1-04 Confrontation action — deliberate, hand ≥ threshold check, wired to
-      the existing 3/4/5-seam damage curve (18/36/54 Continuity Integrity)
-- [ ] P1-05 Integrity display + terminal `WON` presentation when it hits zero
+- [x] P1-01 Document reader: renders a published document, mouse-selection
+      maps to character offsets and calls the real `accuse_span` — confirmed
+      firing over the network (missed the one real seam tried against it,
+      which is a correct outcome for a wrong guess, not a bug)
+- [x] P1-02 Visible hand count — real `round._hand_never_show_model()` data,
+      never sent to the model (only `round.briefing()` is)
+- [x] P1-03 Probe action — real `voice.respond_to_probe()`, confirmed live:
+      GLOSS searched doctrine, attempted a repair, and answered in character
+- [~] P1-04 Confrontation action — wired to the real `round.confront()` and
+      3/4/5-seam damage curve, button correctly disabled at an empty hand,
+      but never exercised with a real hand in the session that built this —
+      close the loop once P0 or a real playthrough produces a found seam
+- [x] P1-05 Integrity meter — live `continuity_integrity`/100 with band
+      (NOMINAL/STRAINED/UNCANNY/COLLAPSED); terminal outcome overlay exists
+      but, same as P1-04, hasn't been seen fire for real yet
+
+Open from this pass: document rendering is plain preformatted text, not
+markdown — headers currently show as literal `#`/`##`. Cosmetic, not
+blocking.
 
 ## P2 — Display what GLOSS actually writes
+
+Substantially done alongside P1, not a separate later pass — `POST
+/api/publish` calls the real `publish.publish()` and the archive updates
+live: verified 2026-10-07, GLOSS wrote "Q3 Retention Metrics Report" on
+request and planted 5 real seams, visible in the UI immediately.
 
 The engine does two-pass document publication with locatable seam declarations
 — the UI needs to show the *live* archive growing, not just a frozen corpus:
 
-- [ ] P2-01 Wire the frontend to read newly-published documents as GLOSS writes
-      them, not only the seeded `corpus.json`
-- [ ] P2-02 Surface GLOSS's live responses (via local LM Studio, `gpt-oss-20b`) in
-      the reader/probe flow, not just as a dev-probe console output
+- [x] P2-01 Wire the frontend to read newly-published documents as GLOSS writes
+      them — done via `/api/publish`, not yet wired to the *seeded* `corpus.json`
+      archive specifically (the live session only ever had GLOSS-published docs,
+      never loaded the pre-existing corpus — open question below)
+- [x] P2-02 Surface GLOSS's live responses (via local LM Studio, `gpt-oss-20b`) in
+      the reader/probe flow — done, this is the probe panel
+
+**New open item from this pass:** `corpus.json`'s pre-generated documents
+(the seed/baseline corpus `seed.py` produces) were never loaded into a
+`Round` by `api_server.py` — the archive starts empty and only grows via
+live `/api/publish` calls. Decide whether the seeded corpus should load at
+startup too, or whether "the archive only ever grows from here" is the
+intended player experience.
 
 ## P3 — Mechanic tightening
 
