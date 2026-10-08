@@ -1,16 +1,19 @@
 # Papers, Please — Current Handoff
 
-**Updated:** 2026-09-15
+**Updated:** 2026-10-07
 **Project boundary:** this repository is the game, and only the game.
 
 ## Current state
 
-This is a playable Python prototype of a document-reading game in which the
-player inspects the internal archive of an AI company. GLOSS publishes and
-defends institutional paperwork; the player finds contradictions, builds a
-hand of evidence, and confronts it.
+This is a playable prototype of a document-reading game in which the player
+inspects the internal archive of an AI company. GLOSS publishes and defends
+institutional paperwork; the player finds contradictions, builds a hand of
+evidence, and confronts it.
 
-The engine exists. The player-facing frontend does not.
+Both halves exist now: the Python engine, and a real React frontend
+(`frontend/`) talking to it over HTTP (`api_server.py`). See "Product
+interface" below for exactly what's verified live versus still open —
+confrontation specifically is wired but has never fired against a real hand.
 
 Working pieces include:
 
@@ -25,7 +28,10 @@ Working pieces include:
 - two-pass document publication with locatable seam declarations;
 - live GLOSS responses through local LM Studio using `openai/gpt-oss-20b`;
 - executable doctrine sedimentation and retroactive continuity;
-- the reusable eight-object company canon shape.
+- the reusable eight-object company canon shape;
+- a React/Vite player UI (`frontend/`) and the API wrapping the engine for
+  it (`api_server.py`) — reading, highlighting-to-accuse, probing, and
+  publishing all verified against the live engine, not mocked.
 
 Four companies are currently in scope: GriefForge, SubLaborix Universal,
 OxyVitae Global, and Somnify Neural. GriefForge has a built archive.
@@ -40,7 +46,13 @@ game.
 
 ```text
 *.py                         game engine and local-model integration
-api_server.py                 HTTP API wrapping the engine for the frontend
+api_server.py                HTTP API wrapping the engine for the frontend
+test_voice_live.py           live check: real Round+Ledger through voice.py,
+                              confirms a repair lands in ledger.repairs, not
+                              just in the model's prose
+test_lmstudio_tools.py       one-shot check: does a given LM Studio model
+                              actually tool-call, using the real FILE_REPAIR_TOOL
+                              schema (not a toy example)
 frontend/                    React + Vite player UI (talks to api_server.py)
 corpus.json, drafts/         current generated archive
 companies/                   company research and source material
@@ -94,14 +106,19 @@ their local data, so inspect entry points before using them as verification.
 
 ## Next build
 
-1. Build the player-facing frontend around the existing round/seam/ledger loop:
-   document reading and highlighting, visible hand count, deliberate
-   confrontation, integrity display, and terminal win presentation.
-2. Freeze the first SubLaborix archive from its founding corpus.
-3. Keep model prompts and variable generation behind deterministic game-state
+See `ROADMAP.md` for the full, maintained plan with stable IDs — this
+section is now a short pointer, not a duplicate list that can drift out of
+sync with it again. Headline items as of 2026-10-07:
+
+1. Close the loop on confrontation: get a real hand (via P0's re-baseline or
+   just playing it) and actually see `WON`/`LANDED`/`PAPERED` fire through
+   the UI — wired but never exercised live.
+2. Decide whether `corpus.json`'s seeded documents load into a `Round` at
+   startup, or whether the archive is meant to only ever grow from live
+   `/api/publish` calls, as it does today.
+3. Freeze the first SubLaborix archive from its founding corpus.
+4. Keep model prompts and variable generation behind deterministic game-state
    contracts.
-4. Add end-to-end verification for read → highlight → hold evidence → confront
-   → win.
 
 ## Historical record
 
