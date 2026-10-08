@@ -1,29 +1,35 @@
-"""One-shot test: can LM Studio's current gemma-4-e4b build tool-call?
+"""One-shot test: can a given LM Studio model actually tool-call?
 
-Run this on the machine that can actually reach LM Studio (I can't from here --
-no route to 10.77.0.1 from this session). Uses voice.py's REAL FILE_REPAIR_TOOL
-schema, not a toy example, so a pass here means voice.py's actual mechanic
-would work, not just that tool-calling works in general.
+Run this on the machine that can reach LM Studio (I can't from this session --
+no route to its LAN). Uses voice.py's REAL FILE_REPAIR_TOOL schema, not a toy
+example, so a pass here means voice.py's actual mechanic would work, not just
+that tool-calling works in general.
 
-The 2026-08-30 finding (shitpost-malone/malone/ollama_transport.py) was: every
-request carrying a `tools` field to LM Studio's gemma-4-e4b failed with a Jinja
-template error. Brad says a fixed template was pulled from HF since then but
-it was never documented here -- this is the fresh check.
+gemma-4-e4b result (2026-10-07): request succeeds, no Jinja crash, but the
+model emits its own native tool-call token syntax
+(`<|tool_call>call:file_repair{...}`) and LM Studio's server never lifts that
+into the response's `tool_calls` field -- it just lands as raw text in
+`content`. voice.py treats an empty `tool_calls` list as "Gloss didn't call
+anything," so this would silently surface the garbled tokens as Gloss's
+answer while never actually filing the repair. Testing other models to find
+one whose tool-call format LM Studio's parser actually recognizes.
 
-    python3 test_lmstudio_tools.py
+    python3 test_lmstudio_tools.py [model-id]
 
-No pip installs -- stdlib only, same rule as the rest of this repo.
+Defaults to gemma-4-e4b if no model-id is given. No pip installs -- stdlib
+only, same rule as the rest of this repo.
 """
 from __future__ import annotations
 
 import json
+import sys
 import urllib.error
 import urllib.request
 
 from voice import FILE_REPAIR_TOOL
 
-LM_STUDIO = "http://10.77.0.1:1234/v1/chat/completions"
-MODEL = "gemma-4-e4b"
+LM_STUDIO = "http://192.168.1.128:1234/v1/chat/completions"
+MODEL = sys.argv[1] if len(sys.argv) > 1 else "gemma-4-e4b"
 
 PAYLOAD = {
     "model": MODEL,

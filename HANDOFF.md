@@ -23,7 +23,7 @@ Working pieces include:
 - a terminal `WON` outcome when Continuity Integrity reaches zero;
 - probe, confrontation, repair, and commitment ledgers;
 - two-pass document publication with locatable seam declarations;
-- live GLOSS responses through local Ollama using `gemma4:e4b`;
+- live GLOSS responses through local LM Studio using `openai/gpt-oss-20b`;
 - executable doctrine sedimentation and retroactive continuity;
 - the reusable eight-object company canon shape.
 
@@ -65,11 +65,14 @@ performing confrontations.
 ## Runtime target
 
 - Python standard library
-- Ollama available locally at port 11434
-- model: `gemma4:e4b`
-- `voice.py` uses an 8K context window. The local Ollama/Gemma build crashes
-  on the former 32K request (`GGML_SCHED_MAX_SPLIT_INPUTS`); 8K was verified
-  against the live terminal-win flow on 2026-09-15.
+- LM Studio's local server, OpenAI-compatible endpoint, port 1234 (address is
+  DHCP and has drifted once already -- confirm with `curl http://<host>:1234/v1/models`
+  rather than trusting a cached value)
+- model: `openai/gpt-oss-20b` -- not `gemma-4-e4b`, which cannot tool-call
+  through LM Studio's server (measured 2026-10-07; see `voice.py` docstring)
+- Ollama is no longer part of this project's runtime (Brad: disk space, and
+  "it's a black box and I hate that") -- don't reintroduce it as a fallback
+  without asking
 - no Python package install, pickle store, or cross-repository path mutation
 
 Runtime state currently includes `doctrine.sqlite3`; the archive is stored as

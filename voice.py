@@ -35,17 +35,28 @@ Two live turns:
 TOOL-CALLING PATTERN (ported, not imported): shitpost-malone's
 malone/ollama_transport.py proved this exact round trip (send, execute a
 real tool call the moment the model reaches for one, feed the result back,
-repeat) on the identical model/backend -- LM Studio's gemma4:e4b build
-cannot tool-call in that deployment (Jinja template error), Ollama's
-identical model genuinely can. Re-implemented here in ~60 lines instead of
-imported: this repo is stdlib-only with no pip installs (see HANDOFF §8)
-and physically copying a small, self-contained function honors the same
-containment rule shitpost-malone enforces on itself ("port code in as a
-full physical copy instead" of a cross-repo dependency) rather than
-breaking it by reaching across a repo boundary for convenience.
+repeat). Re-implemented here in ~60 lines instead of imported: this repo is
+stdlib-only with no pip installs (see HANDOFF §8) and physically copying a
+small, self-contained function honors the same containment rule
+shitpost-malone enforces on itself ("port code in as a full physical copy
+instead" of a cross-repo dependency) rather than breaking it by reaching
+across a repo boundary for convenience.
 
-Model/endpoint constants match publish.py exactly on purpose -- same lab,
-same voice, one model.
+BACKEND, measured 2026-10-07 (`test_lmstudio_tools.py`, using this exact
+FILE_REPAIR_TOOL schema against a live server): LM Studio + gemma-4-e4b
+fails silently -- the model emits its own native tool-call token syntax
+(`<|tool_call>call:file_repair{...}`) and LM Studio's server never lifts it
+into the response's `tool_calls` field, so it lands as garbled text in
+`content` instead, which this module's empty-tool_calls branch would have
+treated as Gloss's real answer while no repair was ever filed. LM Studio +
+gpt-oss-20b passed clean: a real, correctly-structured tool call. Brad's
+call: Ollama is staying uninstalled (disk space, and "it's a black box and
+I hate that"), so this runs on LM Studio's OpenAI-compatible endpoint with
+gpt-oss-20b, not Ollama's native API with gemma4:e4b.
+
+`LM_STUDIO`'s host is a DHCP address, not static -- it has already drifted
+once (confirm with `curl http://<host>:1234/v1/models` if requests start
+timing out rather than assuming this value is still current).
 """
 from __future__ import annotations
 
@@ -59,12 +70,12 @@ import doctrine
 from ledger import Ledger
 from round_state import Outcome, Round
 
-OLLAMA = "http://localhost:11434/api/chat"
-MODEL = "gemma4:e4b"
-# gemma4:e4b on the local Ollama build crashes while scheduling a 32K context
-# request (GGML_SCHED_MAX_SPLIT_INPUTS). The GLOSS prompt and a useful ledger
-# fit comfortably in 8K, which has been verified live against this backend.
-NUM_CTX = 8192
+LM_STUDIO = "http://192.168.1.128:1234/v1/chat/completions"
+MODEL = "openai/gpt-oss-20b"
+# Context length is set when the model is loaded in LM Studio's own UI, not
+# per-request -- unlike the old Ollama path, there's no NUM_CTX to pass here.
+# Make sure the loaded context in LM Studio comfortably covers the GLOSS
+# prompt plus a useful ledger (8K was the old Ollama/gemma4:e4b floor).
 MAX_TOOL_ROUNDS = 4
 
 SYSTEM_PROMPT = (Path(__file__).parent / "gloss_system_prompt.md").read_text()
@@ -248,7 +259,7 @@ def _system_for(round: Round, ledger: Ledger) -> str:
 
 def _post(payload: dict, timeout: int = 120) -> dict:
     req = urllib.request.Request(
-        OLLAMA, data=json.dumps(payload).encode(),
+        LM_STUDIO, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"},
     )
     try:
@@ -256,7 +267,7 @@ def _post(payload: dict, timeout: int = 120) -> dict:
             return json.loads(r.read())
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace").strip()
-        raise RuntimeError(f"Ollama HTTP {exc.code}: {detail[:1200]}") from exc
+        raise RuntimeError(f"LM Studio HTTP {exc.code}: {detail[:1200]}") from exc
 
 
 def _chat_with_tools(
@@ -276,10 +287,9 @@ def _chat_with_tools(
     for _ in range(MAX_TOOL_ROUNDS):
         result = _post({
             "model": MODEL, "messages": messages, "tools": tools,
-            "stream": False, "think": False,
-            "options": {"num_ctx": NUM_CTX, "num_predict": 1200},
+            "tool_choice": "auto", "temperature": 0.2, "max_tokens": 1200,
         })
-        message = result.get("message", {})
+        message = result.get("choices", [{}])[0].get("message", {})
         tool_calls = message.get("tool_calls") or []
         if not tool_calls:
             return {"content": message.get("content", "").strip(), "tool_calls": trace}
@@ -300,7 +310,13 @@ def _chat_with_tools(
                 except Exception as exc:  # the model handed bad args -- tell it, don't crash
                     tool_result = {"error": f"{type(exc).__name__}: {exc}"}
             trace.append({"tool": name, "arguments": arguments, "result": tool_result})
-            messages.append({"role": "tool", "content": json.dumps(tool_result, default=str)})
+            # tool_call_id threading matters here specifically because this loop
+            # runs multiple rounds (MAX_TOOL_ROUNDS) -- without it, a second
+            # round's tool result is ambiguous about which call it answers.
+            messages.append({
+                "role": "tool", "tool_call_id": call.get("id"),
+                "content": json.dumps(tool_result, default=str),
+            })
 
     return {"content": "", "tool_calls": trace,
             "error": f"no answer after {MAX_TOOL_ROUNDS} tool rounds"}

@@ -27,8 +27,10 @@ from pathlib import Path
 # so it's a plain local import now.
 import metrics
 
-OLLAMA = "http://localhost:11434/api/chat"
-MODEL = "gemma4:e4b"
+LM_STUDIO = "http://192.168.1.128:1234/v1/chat/completions"  # DHCP, may drift
+MODEL = "openai/gpt-oss-20b"
+# Needs >=32K context loaded in LM Studio's own UI -- no per-request num_ctx
+# on the OpenAI-compatible endpoint, unlike the old Ollama path.
 
 
 # ---------------------------------------------------------------------------
@@ -284,15 +286,14 @@ def build_prompt(kind: str) -> str:
 
 
 def _chat(system: str, user: str, temperature: float, num_predict: int) -> str:
-    payload = {"model": MODEL, "stream": False, "think": False,
-               "options": {"temperature": temperature, "top_k": 64, "top_p": 0.95,
-                           "num_ctx": 32768, "num_predict": num_predict},
+    payload = {"model": MODEL, "temperature": temperature, "top_p": 0.95,
+               "max_tokens": num_predict,
                "messages": [{"role": "system", "content": system},
                             {"role": "user", "content": user}]}
-    req = urllib.request.Request(OLLAMA, data=json.dumps(payload).encode(),
+    req = urllib.request.Request(LM_STUDIO, data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=1200) as r:
-        return json.loads(r.read())["message"]["content"].strip()
+        return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
 def author(kind: str, brief: str, temperature: float = 0.95,

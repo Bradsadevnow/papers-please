@@ -59,8 +59,15 @@ findings/, ADMISSION_SPEC.md                      -- the grounding-check
 
 ## Run it
 
-Requires **Ollama on `:11434`** with **`gemma4:e4b`** pulled. Stdlib only,
-no pip installs, no venv.
+Requires **LM Studio's local server** running with **`openai/gpt-oss-20b`**
+loaded (OpenAI-compatible endpoint, `:1234`). Stdlib only, no pip installs,
+no venv.
+
+Not Ollama: measured 2026-10-07 that LM Studio's `gemma-4-e4b` build can't
+actually tool-call (the model emits its own tool-call token syntax, LM
+Studio's server never lifts it into the response's `tool_calls` field) —
+`gpt-oss-20b` passed clean. See `voice.py`'s module docstring for the full
+finding.
 
 ```bash
 python3 doctrine.py   # seeds the doctrine graph fresh, demos the lifecycle
@@ -84,7 +91,7 @@ python3 doctrine_tolerance_eval.py   # n=25 live search-tolerance measurement
   is three seams, and every seam after that increases integrity damage linearly.
 - A terminal player-win state: a landed confrontation that reduces GLOSS's
   Continuity Integrity to zero returns `WON` and triggers its collapsed-record
-  response. This was verified against the live local Ollama backend.
+  response. This was verified against the live local LM Studio backend.
 
 See `HANDOFF.md` for exact status, what's not built yet, and the measured
 numbers behind all of the above.

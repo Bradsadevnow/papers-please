@@ -34,8 +34,10 @@ from pathlib import Path
 import metrics
 from corpus import Corpus, Document
 
-OLLAMA = "http://localhost:11434/api/chat"
-MODEL = "gemma4:e4b"
+LM_STUDIO = "http://192.168.1.128:1234/v1/chat/completions"  # DHCP, may drift
+MODEL = "openai/gpt-oss-20b"
+# Needs >=32K context loaded in LM Studio's own UI -- no per-request num_ctx
+# on the OpenAI-compatible endpoint, unlike the old Ollama path.
 
 #: tier -> (instruction, acceptable measured FK band)
 TIERS = {
@@ -91,15 +93,14 @@ SEEDS = [
 
 
 def _chat(system: str, user: str, temperature: float = 0.85) -> str:
-    payload = {"model": MODEL, "stream": False, "think": False,
-               "options": {"temperature": temperature, "top_k": 64, "top_p": 0.95,
-                           "num_ctx": 32768, "num_predict": 1600},
+    payload = {"model": MODEL, "temperature": temperature, "top_p": 0.95,
+               "max_tokens": 1600,
                "messages": [{"role": "system", "content": system},
                             {"role": "user", "content": user}]}
-    req = urllib.request.Request(OLLAMA, data=json.dumps(payload).encode(),
+    req = urllib.request.Request(LM_STUDIO, data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=900) as r:
-        return json.loads(r.read())["message"]["content"].strip()
+        return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
 def write_doc(brief: str, tier: str, attempts: int = 3) -> tuple[str, float, int]:

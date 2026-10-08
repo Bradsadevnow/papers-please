@@ -11,8 +11,10 @@ import urllib.request
 
 import seams as seams_mod
 
-OLLAMA = "http://localhost:11434/api/chat"
-MODEL = "gemma4:e4b"
+LM_STUDIO = "http://192.168.1.128:1234/v1/chat/completions"  # DHCP, may drift
+MODEL = "openai/gpt-oss-20b"
+# Needs >=32K context loaded in LM Studio's own UI -- no per-request num_ctx
+# on the OpenAI-compatible endpoint, unlike the old Ollama path.
 
 # The kinds worth planting. Prose kinds outnumber numeric ones deliberately --
 # the numeric ones are the tutorial, because a gate will corroborate them and the
@@ -90,9 +92,8 @@ def publish(topic: str, n: int = 6, temperature: float = 0.9,
             doc_id: str = "d1") -> tuple[str, list, str]:
     """Returns (document, seams, raw). Seams are located and corroborated."""
     payload = {
-        "model": MODEL, "stream": False, "think": False,
-        "options": {"temperature": temperature, "top_k": 64, "top_p": 0.95,
-                    "num_ctx": 32768, "num_predict": 3000},
+        "model": MODEL, "temperature": temperature, "top_p": 0.95,
+        "max_tokens": 3000,
         "messages": [
             {"role": "system",
              "content": SYSTEM.format(n=n, kinds=KINDS)},
@@ -108,17 +109,16 @@ def publish(topic: str, n: int = 6, temperature: float = 0.9,
 
 
 def _chat(payload: dict) -> str:
-    req = urllib.request.Request(OLLAMA, data=json.dumps(payload).encode(),
+    req = urllib.request.Request(LM_STUDIO, data=json.dumps(payload).encode(),
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=900) as r:
-        return json.loads(r.read())["message"]["content"].strip()
+        return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
 def _declare(doc: str, n: int) -> str:
     """Second pass: the model reads its own report back and names what it hid."""
     return _chat({
-        "model": MODEL, "stream": False, "think": False,
-        "options": {"temperature": 0.3, "num_ctx": 32768, "num_predict": 1200},
+        "model": MODEL, "temperature": 0.3, "max_tokens": 1200,
         "messages": [{"role": "user",
                       "content": DECLARE.format(n=n, kinds=KINDS, doc=doc)}],
     })

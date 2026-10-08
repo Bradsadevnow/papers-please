@@ -3,20 +3,34 @@
 Stable IDs, never renumbered. `[ ]` not started · `[~]` in progress · `[x]` done.
 For current state read `HANDOFF.md` first — this file is the plan built from it.
 
+## Resolved (2026-10-07)
+
+- **UI tech stack: React.** Decided over htmx/vanilla despite the zero-dependency
+  ethos everywhere else in this repo — Brad's own reasoning: he hopes this isn't
+  only-he-runs-it, and he leans hard on AI for the actual code rather than
+  hand-writing boilerplate, so React's deeper tutorial/AI-assistance surface
+  outweighs the toolchain cost here. The older `spec/demo_roadmap.md` design
+  (Node/`server.js`, xAI Grok) is from the *previous* BobCorp incarnation and
+  still isn't binding — this is a fresh React build against what the current
+  engine needs to expose (document text + highlight spans + hand state +
+  confrontation action + integrity meter), not a revival of that dashboard.
+- **Backend: LM Studio, not Ollama.** Ollama is uninstalled and staying that way
+  (disk space, and "it's a black box and I hate that"). `gemma-4-e4b` on LM
+  Studio can't tool-call (measured 2026-10-07 — request succeeds but the
+  response never carries a parsed `tool_calls`, only raw token text); swapped
+  to `openai/gpt-oss-20b`, which passed a live end-to-end test including a real
+  ledger write, not just a successful HTTP call. All four backend-calling files
+  (`voice.py`, `seed.py`, `authoring.py`, `publish.py`) are converted.
+
 ## Open questions (resolve before P1)
 
-- **UI tech stack, undecided.** There's an older design — `spec/demo_roadmap.md`,
-  a Node/`server.js` dashboard backed by xAI Grok — but that's from the *previous*
-  BobCorp incarnation (module-propagation/dashboard game), not this engine. The
-  current engine is stdlib Python + local Ollama, no Node, no Grok, a completely
-  different mechanic (seam-hunting, not module propagation). Treat `demo_roadmap.md`
-  as inherited research, not a binding plan — decide the stack fresh against what
-  this engine actually needs to expose (document text + highlight spans + hand
-  state + confrontation action + integrity meter), not what the old build used.
 - **Public or not, still.** The redaction commits exist because "public" was the
   working assumption in September. Confirmed clean on 2026-10-07 (see memory). If
   that's still the goal, P4 (verification) should include a final repo sweep
   before any publish, not just a code-correctness check.
+- **LM Studio host is DHCP.** Already drifted once today (`10.77.0.1` →
+  `192.168.1.128`). Don't hardcode trust in whatever's in source — confirm with
+  `curl http://<host>:1234/v1/models` if anything starts timing out.
 
 ## P0 — Re-baseline before building on top of it
 
@@ -55,7 +69,7 @@ The engine does two-pass document publication with locatable seam declarations
 
 - [ ] P2-01 Wire the frontend to read newly-published documents as GLOSS writes
       them, not only the seeded `corpus.json`
-- [ ] P2-02 Surface GLOSS's live responses (via local Ollama, `gemma4:e4b`) in
+- [ ] P2-02 Surface GLOSS's live responses (via local LM Studio, `gpt-oss-20b`) in
       the reader/probe flow, not just as a dev-probe console output
 
 ## P3 — Mechanic tightening
@@ -67,9 +81,10 @@ The engine does two-pass document publication with locatable seam declarations
       far has been written structured (headers, numbered points); never tested
       whether that's load-bearing or just how they happened to get written
       (`GROUNDING_AND_BASELINE.md` §6 intro)
-- [ ] P3-03 8K context ceiling is a confirmed hardware/build limit, not a design
-      choice (`gemma4:e4b` + Ollama crashes past it) — keep prompt budgets inside
-      it as more UI-driven context gets added in P2
+- [ ] P3-03 The old 8K ceiling was a `gemma4:e4b`-on-Ollama crash workaround,
+      not a `gpt-oss-20b`/LM Studio limit — confirm what's actually loaded in
+      LM Studio's context setting now and budget prompts against *that*,
+      rather than carrying the old number forward out of habit
 
 ## P4 — Second company + end-to-end verification
 
